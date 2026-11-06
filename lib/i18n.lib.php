@@ -1,0 +1,72 @@
+<?php
+
+/**
+ * Obtient la collection des langues disponibles.
+ * 
+ * @return array Tableau des codes de langues.
+ */
+
+function obtenirLanguesDisponible()
+{
+    $languesDispo = [];
+    $contenuI18n = scandir('i18n');
+    for ($i = 0; $i < count($contenuI18n); $i++) {
+        $fichier = $contenuI18n[$i];
+        if ($fichier != '.' && $fichier != '..') :
+            $languesDispo[] = substr($fichier, 0, 2);
+        endif;
+    }
+    return $languesDispo;
+}
+
+/**
+ * Determiner la langue daffichage active du site.
+ * @param array $languesPermises Tableau des codes de langues disponible
+ * 
+ * @return string code ISO-839-1 (en 2 lettres) de la langue active.
+ */
+
+function determinerLangue($languesPermises) {
+    $langue = 'fr';
+	
+	// 2. Langue mémorisée dans un témoin HTTP
+	if(isset($_COOKIE['choixLangue']) && in_array($_COOKIE['choixLangue'], $languesPermises)) {
+		$langue = $_COOKIE['choixLangue'];
+	}
+	
+	// 3. Langue spécifiée explicitement
+	if(isset($_GET['lan']) &&  in_array($_GET['lan'], $languesPermises)) {
+		$langue = $_GET['lan'];
+		setcookie('choixLangue', $langue, time()+30*24*3600);
+	}
+
+    return $langue;
+}
+/**
+ * Obtient les textes statiques de la page specifiee par son nom a partir du fichier JSON
+ * dans la langue specifiee par son code
+ * @param string $codeLangue Code en deux lettres de la langue d'affichage
+ * @param string $nomPage Nom de la page requise.
+ * @return array Tableau contenant des raccorucis pour les textes de l'entete du pied de page, et du contenu de la page specifique (sous forme d<objet PHP)
+ */
+function obtenirTextesStatiques($codeLangue, $page) {
+    // 'i18n/${codeLangue}.json'
+    $textesJSON = file_get_contents("i18n/".$codeLangue.".json");
+	$textes = json_decode($textesJSON);
+	// Variables raccourcis pour les parties communes
+	$_ent = $textes->entete;
+	$_pp = $textes->pp;
+	// Variable raccourci pour toutes les pages spécifiques
+	$_ = @$textes->$page;
+
+    return[$_ent, $_pp, $_];
+}
+
+/**
+ * determiner si le code correspong a une langue RTL out LTR
+ * @param codeLangue  
+ */
+function determinerDirectionEcriture($codeLangue){
+        return in_array($codeLangue, ["ar", "he", "fa", "ur", "dv", "ps", "ku"])
+		? 'rtl' : 'ltr';
+}
